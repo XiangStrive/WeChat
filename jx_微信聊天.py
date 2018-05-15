@@ -4,55 +4,22 @@
 import itchat
 import threading
 import requests
-import pymysql
 import time
 
 
-# alter table msg add province varchar(20)
-
-
-class Db(object):
-    def __init__(self):
-        # 创建这个对象
-        self.conn = pymysql.connect(host='127.0.0.1', port=3306, user='root', password='639916202',
-                                    database='weixinmsg',
-                                    charset='utf8')
-
-        # 创建游标对象
-        self.cs = self.conn.cursor()
-
-    def write_weixin_msg(self, msg_info):
-        """微信收到的信息存入数据库"""
-        sql = """insert into msg values(0,'%s','%s','%s','%s','%s')""" % (msg_info["name"], msg_info["gender"], msg_info["content"], msg_info["date"], msg_info["province"])
-        try:
-            self.cs.execute(sql)
-        except Ellipsis:
-            print("数据库插入失败内容不是字符串")
-        else:
-            self.conn.commit()
-
-    def select_msg(self):
-        sql = """select * from msg"""
-        self.cs.execute(sql)
-        for msg in self.cs.fetchall():
-            print(msg)
-
-
 class WeiXinMsg(object):
-    def __init__(self, db):
+    def __init__(self):
         # 登录不需要重复扫码
         itchat.auto_login(hotReload=True)
-        # 自己的信息
-        self.self_info = dict()
         # 好友列表
         self.friends = itchat.get_friends(update=True)[0:]
-        self.db = db
 
     @staticmethod
     def tuling_register(msg):
+        """图灵机器人接口"""
         apiUrl = 'http://www.tuling123.com/openapi/api'
         data = {
-            'key': 'bffee870aee3429c996e320e4b0d4187',  # 到图灵官网可以注册一个
+            'key': '8edce3ce905a4c1dbb965e6b35c3834d',  # 到图灵官网可以注册一个
             'info': msg,  # msg['Text']获取微信接收到的消息 然后发给图灵机器人
             'userid': 'wechat-robot',  # 这里你想改什么都可以
         }
@@ -81,8 +48,6 @@ class WeiXinMsg(object):
                 # "nick_name": msg["User"]["NickName"],
                 "province": msg["User"]["Province"]
             }
-            #  """存到数据库"""
-            self.db.write_weixin_msg(message)
             # 把收到的消息交发给图灵机器人
             content = self.tuling_register(msg["Text"])
             # content就图灵机器人回复的消息回复给发送消息的人
@@ -140,10 +105,7 @@ class WeiXinMsg(object):
                 itchat.send(connut, userName)
                 break
 
-    def oneself_info(self):
-        """获取自己信息"""
-        self.self_info = itchat.search_friends()
-
+                
     def gender_ratio(self):
         """获取男女比例"""
         # 初始化计数器，有男有女，当然，有些人是不填的
@@ -178,20 +140,17 @@ def main():
     while True:
         print("-" * 18 + "请选择对应操作" + "-" * 18)
         print("1、发送消息")
-        print("2、查看接收到的消息")
-        print("3、查看自己好友的男女比例")
-        print("4、定时发送")
+        print("2、查看自己好友的男女比例")
+        print("3、定时发送")
         print("0、退出")
         print("-" * 50)
         index = input("请输入对应的操作:")
         if index == "1":
             weixin_msg.send()
         elif index == "2":
-            weixin_msg.db.select_msg()
-        elif index == "3":
             weixin_msg.gender_ratio()
-        elif index == "4":
-            weixin_msg.timing_send()
+        elif index == "3":
+            weixin_msg.timing_send()   
         elif index == "0":
             break
         else:
